@@ -12,13 +12,29 @@ import warnings
 from contextlib import contextmanager
 from pathlib import Path
 from typing import List
+import tensorflow as tf
 
 # ========== ENV & LOGGING 설정 ==========
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'  # GPU 사용 (첫 번째 GPU 선택)
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '1'
 os.environ['PYTHONWARNINGS'] = 'ignore'
-os.environ['MEDIAPIPE_DISABLE_GPU'] = '1'
+os.environ['MEDIAPIPE_DISABLE_GPU'] = '0'  # GPU 활성화
+
+# GPU 메모리 설정
+gpus = tf.config.experimental.list_physical_devices('GPU')
+if gpus:
+    try:
+        # GPU 메모리 증가 허용
+        for gpu in gpus:
+            tf.config.experimental.set_memory_growth(gpu, True)
+        # 혹은 특정 메모리 제한을 두고 싶다면:
+        # tf.config.experimental.set_virtual_device_configuration(
+        #     gpus[0],
+        #     [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=4096)]  # 4GB 제한
+        # )
+    except RuntimeError as e:
+        print(f"GPU 설정 중 오류 발생: {e}")
 
 warnings.filterwarnings('ignore')
 logging.getLogger().setLevel(logging.ERROR)
@@ -112,6 +128,12 @@ def mouse_callback(event, x, y, flags, param):
 
 
 def main():
+    # GPU 확인
+    print("\nGPU 확인:")
+    print("TensorFlow:", tf.config.list_physical_devices('GPU'))
+    print("CUDA 사용 가능:", tf.test.is_built_with_cuda())
+    print("GPU 사용 가능:", tf.test.is_built_with_gpu_support())
+
     global analyzer, body_analyzer
     parser = argparse.ArgumentParser(description='Photo Composition Analyzer (Faces + Body)')
     parser.add_argument('--output', type=str, default='output', help='Output directory')
@@ -129,7 +151,8 @@ def main():
         smooth_landmarks=True,
         enable_segmentation=False,
         min_detection_confidence=0.5,
-        min_tracking_confidence=0.5
+        min_tracking_confidence=0.5,
+        gpu_id=0  # GPU 사용 설정 추가
     )
 
     # 2) 얼굴+몸 구도 분석기 (body_analyzer 주입)
@@ -204,8 +227,6 @@ def main():
         print(f" - 3분할 구도 비율         : {(avg_thirds * 100):.1f}%")
         print(f" - 평균 종합 구도 점수     : {avg_score:.2f}")
         print("=================================")
-
-
 
     # =========== (3) 카메라 실시간 분석: 얼굴 + 몸 ===========
     print("\n카메라 초기화 중...")

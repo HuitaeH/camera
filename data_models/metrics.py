@@ -34,3 +34,20 @@ class AnalysisStatistics:
     preferred_angles: List[float]
     composition_preferences: dict
     quality_threshold: float
+
+    class CompositionMetrics:
+            def __init__(
+                self,
+                rule_of_thirds: bool,
+                symmetry_score: float,
+                center_weight: float,
+                golden_ratio: float,
+                body_center_weight: float = 0.0,
+                pose_balance: float = 0.0
+            ):
+                self.rule_of_thirds = rule_of_thirds
+                self.symmetry_score = symmetry_score
+                self.center_weight = center_weight
+                self.golden_ratio = golden_ratio
+                self.body_center_weight = body_center_weight
+                self.pose_balance = pose_balance
